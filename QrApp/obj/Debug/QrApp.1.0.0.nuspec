@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>QrApp</id>
+    <version>1.0.0</version>
+    <authors>QrApp</authors>
+    <description>Package Description</description>
+    <repository type="git" />
+    <dependencies>
+      <group targetFramework="net8.0-windows10.0.18362">
+        <dependency id="ConsoleApp1" version="1.0.0" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+    <frameworkReferences>
+      <group targetFramework="net8.0-windows10.0.18362">
+        <frameworkReference name="Microsoft.WindowsDesktop.App.WindowsForms" />
+      </group>
+    </frameworkReferences>
+  </metadata>
+  <files>
+    <file src="C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrApp\bin\Debug\net8.0-windows10.0.18362.0\QrApp.runtimeconfig.json" target="lib\net8.0-windows10.0.18362\QrApp.runtimeconfig.json" />
+    <file src="C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrApp\bin\Debug\net8.0-windows10.0.18362.0\QrApp.dll" target="lib\net8.0-windows10.0.18362\QrApp.dll" />
+  </files>
+</package>
