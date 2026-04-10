@@ -1,0 +1,14 @@
+C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrLibreria\bin\Debug\net8.0\QrLibreria.exe
+C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrLibreria\bin\Debug\net8.0\QrLibreria.deps.json
+C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrLibreria\bin\Debug\net8.0\QrLibreria.runtimeconfig.json
+C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrLibreria\bin\Debug\net8.0\QrLibreria.dll
+C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrLibreria\bin\Debug\net8.0\QrLibreria.pdb
+C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrLibreria\obj\Debug\net8.0\QrLibreria.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrLibreria\obj\Debug\net8.0\QrLibreria.AssemblyInfoInputs.cache
+C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrLibreria\obj\Debug\net8.0\QrLibreria.AssemblyInfo.cs
+C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrLibreria\obj\Debug\net8.0\QrLibreria.csproj.CoreCompileInputs.cache
+C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrLibreria\obj\Debug\net8.0\QrLibreria.dll
+C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrLibreria\obj\Debug\net8.0\refint\QrLibreria.dll
+C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrLibreria\obj\Debug\net8.0\QrLibreria.pdb
+C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrLibreria\obj\Debug\net8.0\QrLibreria.genruntimeconfig.cache
+C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrLibreria\obj\Debug\net8.0\ref\QrLibreria.dll

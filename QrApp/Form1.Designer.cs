@@ -46,6 +46,9 @@
             limpiarNombresToolStripMenuItem = new ToolStripMenuItem();
             ordenNombresToolStripMenuItem = new ToolStripMenuItem();
             virarArchivosToolStripMenuItem = new ToolStripMenuItem();
+            copiarDatosArchivoToolStripMenuItem = new ToolStripMenuItem();
+            separarPdfToolStripMenuItem = new ToolStripMenuItem();
+            separarPdf2ToolStripMenuItem = new ToolStripMenuItem();
             servidorToolStripMenuItem = new ToolStripMenuItem();
             generarCarpetaToolStripMenuItem = new ToolStripMenuItem();
             subirArchivosToolStripMenuItem = new ToolStripMenuItem();
@@ -136,6 +139,7 @@
             label5.Name = "label5";
             label5.Size = new Size(600, 20);
             label5.TabIndex = 8;
+            label5.Click += label5_Click;
             // 
             // label6
             // 
@@ -189,7 +193,7 @@
             // 
             // archivoToolStripMenuItem
             // 
-            archivoToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { limpiarNombresToolStripMenuItem, ordenNombresToolStripMenuItem, virarArchivosToolStripMenuItem });
+            archivoToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { limpiarNombresToolStripMenuItem, ordenNombresToolStripMenuItem, virarArchivosToolStripMenuItem, copiarDatosArchivoToolStripMenuItem, separarPdfToolStripMenuItem, separarPdf2ToolStripMenuItem });
             archivoToolStripMenuItem.Name = "archivoToolStripMenuItem";
             archivoToolStripMenuItem.Size = new Size(73, 24);
             archivoToolStripMenuItem.Text = "Archivo";
@@ -197,23 +201,44 @@
             // limpiarNombresToolStripMenuItem
             // 
             limpiarNombresToolStripMenuItem.Name = "limpiarNombresToolStripMenuItem";
-            limpiarNombresToolStripMenuItem.Size = new Size(224, 26);
+            limpiarNombresToolStripMenuItem.Size = new Size(229, 26);
             limpiarNombresToolStripMenuItem.Text = "Limpiar nombres";
             limpiarNombresToolStripMenuItem.Click += limpiarNombresToolStripMenuItem_Click;
             // 
             // ordenNombresToolStripMenuItem
             // 
             ordenNombresToolStripMenuItem.Name = "ordenNombresToolStripMenuItem";
-            ordenNombresToolStripMenuItem.Size = new Size(224, 26);
+            ordenNombresToolStripMenuItem.Size = new Size(229, 26);
             ordenNombresToolStripMenuItem.Text = "Orden nombres";
             ordenNombresToolStripMenuItem.Click += ordenNombresToolStripMenuItem_Click;
             // 
             // virarArchivosToolStripMenuItem
             // 
             virarArchivosToolStripMenuItem.Name = "virarArchivosToolStripMenuItem";
-            virarArchivosToolStripMenuItem.Size = new Size(224, 26);
+            virarArchivosToolStripMenuItem.Size = new Size(229, 26);
             virarArchivosToolStripMenuItem.Text = "Virar archivos";
             virarArchivosToolStripMenuItem.Click += virarArchivosToolStripMenuItem_Click;
+            // 
+            // copiarDatosArchivoToolStripMenuItem
+            // 
+            copiarDatosArchivoToolStripMenuItem.Name = "copiarDatosArchivoToolStripMenuItem";
+            copiarDatosArchivoToolStripMenuItem.Size = new Size(229, 26);
+            copiarDatosArchivoToolStripMenuItem.Text = "Copiar datos archivo";
+            copiarDatosArchivoToolStripMenuItem.Click += copiarDatosArchivoToolStripMenuItem_Click;
+            // 
+            // separarPdfToolStripMenuItem
+            // 
+            separarPdfToolStripMenuItem.Name = "separarPdfToolStripMenuItem";
+            separarPdfToolStripMenuItem.Size = new Size(229, 26);
+            separarPdfToolStripMenuItem.Text = "Separar pdf ";
+            separarPdfToolStripMenuItem.Click += separarPdfToolStripMenuItem_Click;
+            // 
+            // separarPdf2ToolStripMenuItem
+            // 
+            separarPdf2ToolStripMenuItem.Name = "separarPdf2ToolStripMenuItem";
+            separarPdf2ToolStripMenuItem.Size = new Size(229, 26);
+            separarPdf2ToolStripMenuItem.Text = "Separar pdf2";
+            separarPdf2ToolStripMenuItem.Click += separarPdf2ToolStripMenuItem_Click;
             // 
             // servidorToolStripMenuItem
             // 
@@ -225,14 +250,14 @@
             // generarCarpetaToolStripMenuItem
             // 
             generarCarpetaToolStripMenuItem.Name = "generarCarpetaToolStripMenuItem";
-            generarCarpetaToolStripMenuItem.Size = new Size(224, 26);
+            generarCarpetaToolStripMenuItem.Size = new Size(198, 26);
             generarCarpetaToolStripMenuItem.Text = "Generar carpeta";
             generarCarpetaToolStripMenuItem.Click += generarCarpetaToolStripMenuItem_Click;
             // 
             // subirArchivosToolStripMenuItem
             // 
             subirArchivosToolStripMenuItem.Name = "subirArchivosToolStripMenuItem";
-            subirArchivosToolStripMenuItem.Size = new Size(224, 26);
+            subirArchivosToolStripMenuItem.Size = new Size(198, 26);
             subirArchivosToolStripMenuItem.Text = "Subir archivos";
             subirArchivosToolStripMenuItem.Click += subirArchivosToolStripMenuItem_Click;
             // 
@@ -301,5 +326,8 @@
         private ToolStripMenuItem subirArchivosToolStripMenuItem;
         private ProgressBar progressBar1;
         private ToolStripMenuItem virarArchivosToolStripMenuItem;
+        private ToolStripMenuItem copiarDatosArchivoToolStripMenuItem;
+        private ToolStripMenuItem separarPdfToolStripMenuItem;
+        private ToolStripMenuItem separarPdf2ToolStripMenuItem;
     }
 }

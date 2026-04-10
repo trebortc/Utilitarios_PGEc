@@ -1,0 +1,215 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
+using UglyToad.PdfPig;
+using UglyToad.PdfPig.Content;
+using ClosedXML.Excel;
+
+namespace QrApp.Utilidades
+{
+    public class Registro
+    {
+        public string OrigenBloque { get; set; } = "";
+        public int? Item { get; set; }
+        public string Guia { get; set; } = "";
+        public string Tipo { get; set; } = "";
+        public DateTime? Fecha { get; set; }
+        public string OrigenCiudad { get; set; } = "";
+        public string Usuario { get; set; } = "";
+        public string ClienteUnidad { get; set; } = "";
+        public string CiudadDestino { get; set; } = "";
+        public string SectorDestino { get; set; } = "";
+        public string Destinatario { get; set; } = "";
+        public string Contenido { get; set; } = "";
+        public decimal? PKg { get; set; }
+        public decimal? PVol { get; set; }
+        public decimal? Valor { get; set; }
+        public decimal? Seg { get; set; }
+        public decimal? IVA { get; set; }
+        public decimal? Total { get; set; }
+    }
+
+    public class PdfPagina
+    {
+        public int NumeroPagina { get; set; }
+        public List<string> Lineas { get; set; } = new List<string>();
+    }
+
+    public static class CopiarRegistrosPdf
+    {
+        public static List<Registro> ExtraerRegistros(string pdfPath)
+        {
+            var lista = new List<Registro>();
+            string origenBloqueActual = "";
+
+            // Regex base para líneas de detalle:
+            // (#) (Guia) (Tipo) (Fecha) (OrigenCiudad) (Usuario) (Resto...) (6 números al final)
+            // Observación: el "resto" contiene Cliente/Unidad, destino, destinatario, contenido.
+            var regexFila = new Regex(
+                @"^\s*(?<item>\d+)\s+(?<guia>\d{11,12})\s+(?<tipo>[A-Z])\s+(?<fecha>\d{4}/\d{2}/\d{2})\s+(?<orig>[A-ZÁÉÍÓÚÑ]+)\s+(?<user>[A-Za-z0-9._-]+)\s+(?<resto>.+?)\s+(?<n1>\d+(?:\.\d+)?)\s+(?<n2>\d+(?:\.\d+)?)\s+(?<n3>\d+(?:\.\d+)?)\s+(?<n4>\d+(?:\.\d+)?)\s+(?<n5>\d+(?:\.\d+)?)\s+(?<n6>\d+(?:\.\d+)?)(?:\s*)$",
+                RegexOptions.Compiled);
+
+            // Detectar "Origen: XYZ"
+            var regexOrigenBloque = new Regex(@"^\s*Origen:\s*(?<org>[A-ZÁÉÍÓÚÑ]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+            using (var pdf = PdfDocument.Open(pdfPath))
+            {
+                foreach (var page in pdf.GetPages())
+                {
+                    // 1) Reconstruir líneas por Y (tolerancia) y ordenar por X
+                    var grupos = page.GetWords()
+                                     .GroupBy(w => Math.Round(w.BoundingBox.Bottom, 0)) // tolerancia ~1px
+                                     .OrderByDescending(g => g.Key);
+
+                    foreach (var g in grupos)
+                    {
+                        var line = string.Join(" ", g.OrderBy(w => w.BoundingBox.Left)
+                                                     .Select(w => w.Text));
+
+                        if (string.IsNullOrWhiteSpace(line))
+                            continue;
+
+                        line = Normalizar(line);
+
+                        // Detecta cambio de bloque "Origen: ..."
+                        var mOrigen = regexOrigenBloque.Match(line);
+                        if (mOrigen.Success)
+                        {
+                            origenBloqueActual = mOrigen.Groups["org"].Value.ToUpperInvariant();
+                            continue;
+                        }
+
+                        // Intentar matchear una fila de detalle
+                        var m = regexFila.Match(line);
+                        if (!m.Success) continue;
+
+                        var reg = new Registro();
+                        reg.OrigenBloque = origenBloqueActual;
+                        reg.Item = SafeInt(m.Groups["item"].Value);
+                        reg.Guia = m.Groups["guia"].Value;
+                        reg.Tipo = m.Groups["tipo"].Value;
+
+                        reg.Fecha = SafeDate(m.Groups["fecha"].Value);
+                        reg.OrigenCiudad = m.Groups["orig"].Value;
+                        reg.Usuario = m.Groups["user"].Value;
+
+                        // Números al final
+                        reg.PKg = SafeDec(m.Groups["n1"].Value);
+                        reg.PVol = SafeDec(m.Groups["n2"].Value);
+                        reg.Valor = SafeDec(m.Groups["n3"].Value);
+                        reg.Seg = SafeDec(m.Groups["n4"].Value);
+                        reg.IVA = SafeDec(m.Groups["n5"].Value);
+                        reg.Total = SafeDec(m.Groups["n6"].Value);
+
+                        // Partir el "resto": Cliente/Unidad, Destino, Destinatario, Contenido
+                        var resto = m.Groups["resto"].Value;
+
+                        // A veces hay backslash o pipes del PDF: limpiamos
+                        resto = resto.Replace("\\", " ").Replace("|", " ").Replace("  ", " ").Trim();
+
+                        // Heurística:
+                        //  - Buscar el primer patrón de "CIUDAD / SECTOR"
+                        //  - Lo que va antes => ClienteUnidad
+                        //  - Lo que va después => "Destinatario / Contenido"
+                        var destinoMatch = Regex.Match(resto, @"(?<cd>[A-ZÁÉÍÓÚÑ ]+)\s*/\s*(?<sd>[A-ZÁÉÍÓÚÑ ]+)");
+                        if (destinoMatch.Success)
+                        {
+                            var idx = destinoMatch.Index;
+                            reg.ClienteUnidad = resto.Substring(0, idx).Trim();
+
+                            reg.CiudadDestino = destinoMatch.Groups["cd"].Value.Trim();
+                            reg.SectorDestino = destinoMatch.Groups["sd"].Value.Trim();
+
+                            var after = resto.Substring(idx + destinoMatch.Length).Trim();
+
+                            // Esperamos "DESTINATARIO / Contenido," (contenido termina con coma)
+                            var destContenido = Regex.Match(after, @"^(?<dest>[^/]+)\s*/\s*(?<cont>.+)$");
+                            if (destContenido.Success)
+                            {
+                                reg.Destinatario = destContenido.Groups["dest"].Value.Trim();
+                                reg.Contenido = destContenido.Groups["cont"].Value.Trim().TrimEnd(',');
+                            }
+                            else
+                            {
+                                // Fallback: si no hay slash, todo a Contenido
+                                reg.Contenido = after.Trim().TrimEnd(',');
+                            }
+                        }
+                        else
+                        {
+                            // Si no encontramos "CIUDAD / SECTOR", asumimos todo es ClienteUnidad
+                            reg.ClienteUnidad = resto.Trim();
+                        }
+
+                        lista.Add(reg);
+                    }
+                }
+            }
+
+            return lista;
+        }
+
+        public static string Normalizar(string s)
+        {
+            // Quitar dobles espacios, caracteres raros y uniformar
+            s = s.Replace(" ", " "); // NBSP
+            while (s.Contains("  ")) s = s.Replace("  ", " ");
+            return s.Trim();
+        }
+
+        public static int? SafeInt(string v)
+            => int.TryParse(v, out var n) ? n : (int?)null;
+
+        public static DateTime? SafeDate(string v)
+            => DateTime.TryParseExact(v, "yyyy/MM/dd", CultureInfo.InvariantCulture,
+                                      DateTimeStyles.None, out var d) ? d : (DateTime?)null;
+
+        public static decimal? SafeDec(string v)
+            => decimal.TryParse(v, NumberStyles.Any, CultureInfo.InvariantCulture, out var n) ? n : (decimal?)null;
+
+        public static List<PdfPagina> LeerPaginasPorSeparado(string rutaPdf)
+        {
+            var paginas = new List<PdfPagina>();
+
+            using (var pdf = PdfDocument.Open(rutaPdf))
+            {
+                int total = pdf.NumberOfPages;
+
+                for (int i = 1; i <= total; i++)
+                {
+                    Page page = pdf.GetPage(i);
+
+                    var lineas = new List<string>();
+
+                    // Reconstruimos las líneas usando las coordenadas Y
+                    var grupos = page.GetWords()
+                                     .GroupBy(w => Math.Round(w.BoundingBox.Bottom, 0))
+                                     .OrderByDescending(g => g.Key);
+
+                    foreach (var g in grupos)
+                    {
+                        string linea = string.Join(" ",
+                            g.OrderBy(w => w.BoundingBox.Left)
+                             .Select(w => w.Text));
+
+                        if (!string.IsNullOrWhiteSpace(linea))
+                            lineas.Add(linea.Trim());
+                    }
+
+                    paginas.Add(new PdfPagina
+                    {
+                        NumeroPagina = i,
+                        Lineas = lineas
+                    });
+                }
+            }
+
+            return paginas;
+        }
+
+    }
+
+}

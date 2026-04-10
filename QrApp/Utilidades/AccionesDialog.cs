@@ -20,4 +20,20 @@ public static class AccionesDialog
 
         return folderDialog.SelectedPath;
     }
+
+    public static string? ObtenerArchivoSeleccionado(this OpenFileDialog dlg)
+    {
+
+        dlg.Title = "Seleccione un archivo";
+        dlg.Filter = "Todos los archivos (*.*)|*.*";
+
+
+        if ((dlg.ShowDialog() != DialogResult.OK))
+        {
+            return "";
+        }
+
+        return dlg.FileName;
+    }
+
 }

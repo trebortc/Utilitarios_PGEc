@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("QrLibreria")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a65f18ca1a82d18fd28bdaf818cef5731d50e470")]
 [assembly: System.Reflection.AssemblyProductAttribute("QrLibreria")]
 [assembly: System.Reflection.AssemblyTitleAttribute("QrLibreria")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

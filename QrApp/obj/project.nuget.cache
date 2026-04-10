@@ -1,9 +1,14 @@
 {
   "version": 2,
-  "dgSpecHash": "B3hGdVPTEtI=",
+  "dgSpecHash": "9zcU3f27CKg=",
   "success": true,
   "projectFilePath": "C:\\Users\\robert.tene.QUITO\\Documents\\Scripts\\ConsoleApp1\\QrApp\\QrApp.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\robert.tene.QUITO\\.nuget\\packages\\closedxml\\0.105.0\\closedxml.0.105.0.nupkg.sha512",
+    "C:\\Users\\robert.tene.QUITO\\.nuget\\packages\\closedxml.parser\\2.0.0\\closedxml.parser.2.0.0.nupkg.sha512",
+    "C:\\Users\\robert.tene.QUITO\\.nuget\\packages\\documentformat.openxml\\3.4.1\\documentformat.openxml.3.4.1.nupkg.sha512",
+    "C:\\Users\\robert.tene.QUITO\\.nuget\\packages\\documentformat.openxml.framework\\3.4.1\\documentformat.openxml.framework.3.4.1.nupkg.sha512",
+    "C:\\Users\\robert.tene.QUITO\\.nuget\\packages\\excelnumberformat\\1.1.0\\excelnumberformat.1.1.0.nupkg.sha512",
     "C:\\Users\\robert.tene.QUITO\\.nuget\\packages\\microsoft.extensions.configuration\\8.0.0\\microsoft.extensions.configuration.8.0.0.nupkg.sha512",
     "C:\\Users\\robert.tene.QUITO\\.nuget\\packages\\microsoft.extensions.configuration.abstractions\\8.0.0\\microsoft.extensions.configuration.abstractions.8.0.0.nupkg.sha512",
     "C:\\Users\\robert.tene.QUITO\\.nuget\\packages\\microsoft.extensions.configuration.fileextensions\\8.0.1\\microsoft.extensions.configuration.fileextensions.8.0.1.nupkg.sha512",
@@ -14,7 +19,11 @@
     "C:\\Users\\robert.tene.QUITO\\.nuget\\packages\\microsoft.extensions.filesystemglobbing\\8.0.0\\microsoft.extensions.filesystemglobbing.8.0.0.nupkg.sha512",
     "C:\\Users\\robert.tene.QUITO\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\8.0.3\\microsoft.extensions.logging.abstractions.8.0.3.nupkg.sha512",
     "C:\\Users\\robert.tene.QUITO\\.nuget\\packages\\microsoft.extensions.primitives\\8.0.0\\microsoft.extensions.primitives.8.0.0.nupkg.sha512",
+    "C:\\Users\\robert.tene.QUITO\\.nuget\\packages\\pdfpig\\0.1.13\\pdfpig.0.1.13.nupkg.sha512",
     "C:\\Users\\robert.tene.QUITO\\.nuget\\packages\\pdfsharp\\6.2.4\\pdfsharp.6.2.4.nupkg.sha512",
+    "C:\\Users\\robert.tene.QUITO\\.nuget\\packages\\rbush.signed\\4.0.0\\rbush.signed.4.0.0.nupkg.sha512",
+    "C:\\Users\\robert.tene.QUITO\\.nuget\\packages\\sixlabors.fonts\\1.0.0\\sixlabors.fonts.1.0.0.nupkg.sha512",
+    "C:\\Users\\robert.tene.QUITO\\.nuget\\packages\\system.io.packaging\\8.0.1\\system.io.packaging.8.0.1.nupkg.sha512",
     "C:\\Users\\robert.tene.QUITO\\.nuget\\packages\\system.security.cryptography.pkcs\\8.0.1\\system.security.cryptography.pkcs.8.0.1.nupkg.sha512",
     "C:\\Users\\robert.tene.QUITO\\.nuget\\packages\\winscp\\6.3.5\\winscp.6.3.5.nupkg.sha512",
     "C:\\Users\\robert.tene.QUITO\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.18362.57\\microsoft.windows.sdk.net.ref.10.0.18362.57.nupkg.sha512"

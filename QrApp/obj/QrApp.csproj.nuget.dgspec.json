@@ -74,9 +74,21 @@
         "net8.0-windows10.0.18362": {
           "targetAlias": "net8.0-windows10.0.18362.0",
           "dependencies": {
+            "ClosedXML": {
+              "target": "Package",
+              "version": "[0.105.0, )"
+            },
+            "DocumentFormat.OpenXml": {
+              "target": "Package",
+              "version": "[3.4.1, )"
+            },
             "PDFsharp": {
               "target": "Package",
               "version": "[6.2.4, )"
+            },
+            "PdfPig": {
+              "target": "Package",
+              "version": "[0.1.13, )"
             }
           },
           "imports": [

@@ -1,5 +1,10 @@
+using ClosedXML.Excel;
+using PdfSharp.Pdf;
+using PdfSharp.Pdf.IO;
 using QrApp.Utilidades;
 using QrServidor;
+using System.Text.RegularExpressions;
+using UglyToad.PdfPig;
 using P1 = ConsoleApp1;
 
 namespace QrApp
@@ -198,6 +203,329 @@ namespace QrApp
             }
 
             AccionesArchivos.Virar(ruta);
+        }
+
+        private void copiarDatosArchivoToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string? archivo = openFileDialog1.ObtenerArchivoSeleccionado();
+
+            if (string.IsNullOrEmpty(archivo))
+            {
+                return;
+            }
+
+            DialogResult resultado = MessageBox.Show(" ¿Desea procesar el archivo PDF página por página: \n " + archivo + " ?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if (!(resultado == DialogResult.Yes))
+            {
+                return;
+            }
+
+            var inputPdf = archivo;
+            var outputXlsx = "Planillaje_Extraido.xlsx";
+
+            // Leer páginas por separado
+            var paginas = CopiarRegistrosPdf.LeerPaginasPorSeparado(inputPdf);
+            if (paginas == null || paginas.Count == 0)
+            {
+                MessageBox.Show("No se pudieron leer las páginas del PDF.");
+                return;
+            }
+
+            string origenBloque = ""; // mantiene estado entre páginas
+
+            foreach (var pagina in paginas)
+            {
+                // Mostrar vista previa corta para que el usuario decida
+                var preview = string.Join("\n", pagina.Lineas.Take(6));
+                var pregunta = $"Procesar página {pagina.NumeroPagina} de {paginas.Count}?\n\nPreview (primeras líneas):\n{preview}";
+
+                var r = MessageBox.Show(pregunta, "Procesar página", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+                if (r == DialogResult.Cancel)
+                {
+                    // finalizar proceso
+                    break;
+                }
+
+                if (r == DialogResult.No)
+                {
+                    // saltar esta página
+                    continue;
+                }
+
+                // Extraer registros sólo de esta página
+                var regsPagina = CopiarRegistrosPdf.ExtraerRegistrosDesdeLineas(pagina.Lineas, ref origenBloque, pagina.NumeroPagina);
+
+                if (regsPagina == null || regsPagina.Count == 0)
+                {
+                    MessageBox.Show($"Página {pagina.NumeroPagina}: no se encontraron registros.");
+                    continue;
+                }
+
+                // Abrir o crear workbook y hoja
+                XLWorkbook wb;
+                IXLWorksheet ws;
+
+                if (System.IO.File.Exists(outputXlsx))
+                {
+                    wb = new XLWorkbook(outputXlsx);
+                    if (wb.Worksheets.Contains("Planillaje"))
+                        ws = wb.Worksheet("Planillaje");
+                    else
+                        ws = wb.Worksheets.Add("Planillaje");
+                }
+                else
+                {
+                    wb = new XLWorkbook();
+                    ws = wb.Worksheets.Add("Planillaje");
+                    // escribir encabezados
+                    var headers = new[]
+                    {
+                        "OrigenBloque","Item","Guia","Tipo","Fecha","OrigenCiudad","Usuario",
+                        "ClienteUnidad","CiudadDestino","SectorDestino","Destinatario","Contenido",
+                        "PKg","PVol","Valor","Seg","IVA","Total"
+                    };
+                    for (int i = 0; i < headers.Length; i++)
+                        ws.Cell(1, i + 1).Value = headers[i];
+                }
+
+                // Determinar la primera fila disponible
+                int startRow = 2;
+                var last = ws.LastRowUsed();
+                if (last != null)
+                {
+                    startRow = last.RowNumber() + 1;
+                }
+
+                // Escribir registros de la página
+                int row = startRow;
+                foreach (var item in regsPagina)
+                {
+                    ws.Cell(row, 1).Value = item.OrigenBloque;
+                    ws.Cell(row, 2).Value = item.Item;
+                    ws.Cell(row, 3).Value = item.Guia;
+                    ws.Cell(row, 4).Value = item.Tipo;
+                    ws.Cell(row, 5).Value = item.Fecha?.ToString("yyyy-MM-dd");
+                    ws.Cell(row, 6).Value = item.OrigenCiudad;
+                    ws.Cell(row, 7).Value = item.Usuario;
+                    ws.Cell(row, 8).Value = item.ClienteUnidad;
+                    ws.Cell(row, 9).Value = item.CiudadDestino;
+                    ws.Cell(row, 10).Value = item.SectorDestino;
+                    ws.Cell(row, 11).Value = item.Destinatario;
+                    ws.Cell(row, 12).Value = item.Contenido;
+
+                    ws.Cell(row, 13).Value = item.PKg;
+                    ws.Cell(row, 14).Value = item.PVol;
+                    ws.Cell(row, 15).Value = item.Valor;
+                    ws.Cell(row, 16).Value = item.Seg;
+                    ws.Cell(row, 17).Value = item.IVA;
+                    ws.Cell(row, 18).Value = item.Total;
+
+                    row++;
+                }
+
+                ws.Columns().AdjustToContents();
+                wb.SaveAs(outputXlsx);
+                wb.Dispose();
+
+                MessageBox.Show($"Página {pagina.NumeroPagina} procesada y guardada en {outputXlsx}.");
+            }
+
+            MessageBox.Show("Proceso por páginas finalizado. Revisar archivo: " + outputXlsx);
+        }
+
+        private void label5_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void separarPdfToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string inputPdf = @"C:\ruta\Certificados ISO 37001 Asistencia1-2.pdf";
+            string outputFolder = @"C:\pdfs";
+
+            string? archivo = openFileDialog1.ObtenerArchivoSeleccionado();
+
+            if (string.IsNullOrEmpty(archivo))
+            {
+                return;
+            }
+
+            DialogResult resultado = MessageBox.Show(" ¿Desea procesar el archivo PDF página por página: \n " + archivo + " ?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if (!(resultado == DialogResult.Yes))
+            {
+                return;
+            }
+
+            inputPdf = archivo;
+
+            Directory.CreateDirectory(outputFolder);
+
+            using (var document = UglyToad.PdfPig.PdfDocument.Open(inputPdf))
+            using (var pdfSharpDoc = PdfReader.Open(inputPdf, PdfDocumentOpenMode.Import))
+            {
+                for (int i = 1; i <= document.NumberOfPages; i++)
+                {
+                    var page = document.GetPage(i);
+                    string text = page.Text;
+
+                    string nombre = ObtenerNombre(text, i - 1);
+
+                    // Limpiar nombre para archivo
+                    nombre = LimpiarNombreArchivo(nombre);
+
+                    string outputPath = Path.Combine(outputFolder, $"{nombre}.pdf");
+
+                    // Crear nuevo PDF con una sola página
+                    var outputPdf = new PdfSharp.Pdf.PdfDocument();
+                    outputPdf.AddPage(pdfSharpDoc.Pages[i - 1]);
+                    outputPdf.Save(outputPath);
+
+                    Console.WriteLine($"Creado: {outputPath}");
+                }
+            }
+        }
+
+        static string ObtenerNombre(string texto, int numeroPagina)
+        {
+            if (string.IsNullOrWhiteSpace(texto))
+                return $"archivo_{numeroPagina}";
+
+            // Primero: intentar extraer nombre entre 'CAVILARD' y 'Asistió'
+            // El patrón tolera que no haya espacios entre las partes (como en el ejemplo).
+            var match = Regex.Match(texto, @"CAVILAR(?<name>[\p{L}\s\.\-]{3,200}?)Asistió", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            if (match.Success)
+            {
+                var name = match.Groups["name"].Value.Trim();
+                if (!string.IsNullOrEmpty(name))
+                    return name;
+            }
+
+            // Segundo: comportamiento previo — buscar línea en MAYÚSCULAS con >= 3 palabras,
+            // pero usando ToUpperInvariant para soporte de Unicode
+            var lineas = texto.Split('\n');
+            foreach (var linea in lineas)
+            {
+                var limpia = linea.Trim();
+                if (string.IsNullOrEmpty(limpia))
+                    continue;
+
+                if (limpia == limpia.ToUpperInvariant() &&
+                    limpia.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length >= 3 &&
+                    !limpia.Contains("ISO", StringComparison.OrdinalIgnoreCase) &&
+                    !limpia.Contains("ING.", StringComparison.OrdinalIgnoreCase) &&
+                    !limpia.Contains("MSC", StringComparison.OrdinalIgnoreCase))
+                {
+                    return limpia;
+                }
+            }
+
+            return $"archivo_{numeroPagina}";
+        }
+
+        static string ObtenerNombre2(string texto, int numeroPagina)
+        {
+            if (string.IsNullOrWhiteSpace(texto))
+                return $"archivo_{numeroPagina}";
+
+            // Primero: intentar extraer nombre entre 'CAVILARD' y 'Asistió'
+            // El patrón tolera que no haya espacios entre las partes (como en el ejemplo).
+            var match = Regex.Match(texto, @"CAVILAR(?<name>[\p{L}\s\.\-]{3,200}?)Aprobó", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            if (match.Success)
+            {
+                var name = match.Groups["name"].Value.Trim();
+                if (!string.IsNullOrEmpty(name))
+                    return name;
+            }
+
+            // Segundo: comportamiento previo — buscar línea en MAYÚSCULAS con >= 3 palabras,
+            // pero usando ToUpperInvariant para soporte de Unicode
+            var lineas = texto.Split('\n');
+            foreach (var linea in lineas)
+            {
+                var limpia = linea.Trim();
+                if (string.IsNullOrEmpty(limpia))
+                    continue;
+
+                if (limpia == limpia.ToUpperInvariant() &&
+                    limpia.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length >= 3 &&
+                    !limpia.Contains("ISO", StringComparison.OrdinalIgnoreCase) &&
+                    !limpia.Contains("ING.", StringComparison.OrdinalIgnoreCase) &&
+                    !limpia.Contains("MSC", StringComparison.OrdinalIgnoreCase))
+                {
+                    return limpia;
+                }
+            }
+
+            return $"archivo_{numeroPagina}";
+        }
+
+        static string LimpiarNombreArchivo(string nombre)
+        {
+            if (string.IsNullOrWhiteSpace(nombre))
+                return "archivo";
+
+            // Permitir letras Unicode (\p{L}) y dígitos (\p{N}) y espacios;
+            // eliminar caracteres no válidos para nombre de archivo.
+            string limpio = Regex.Replace(nombre, @"[^\p{L}\p{N} ]+", string.Empty);
+
+            // Normalizar espacios y recortar
+            limpio = Regex.Replace(limpio.Trim(), @"\s+", "_");
+
+            // Limitar longitud razonable para evitar problemas con el sistema de ficheros
+            if (limpio.Length > 120)
+                limpio = limpio.Substring(0, 120);
+
+            return string.IsNullOrEmpty(limpio) ? "archivo" : limpio;
+        }
+
+        private void separarPdf2ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string inputPdf = @"C:\ruta\Certificados ISO 37001 Asistencia1-2.pdf";
+            string outputFolder = @"C:\pdfs";
+
+            string? archivo = openFileDialog1.ObtenerArchivoSeleccionado();
+
+            if (string.IsNullOrEmpty(archivo))
+            {
+                return;
+            }
+
+            DialogResult resultado = MessageBox.Show(" ¿Desea procesar el archivo PDF página por página: \n " + archivo + " ?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if (!(resultado == DialogResult.Yes))
+            {
+                return;
+            }
+
+            inputPdf = archivo;
+
+            Directory.CreateDirectory(outputFolder);
+
+            using (var document = UglyToad.PdfPig.PdfDocument.Open(inputPdf))
+            using (var pdfSharpDoc = PdfReader.Open(inputPdf, PdfDocumentOpenMode.Import))
+            {
+                for (int i = 1; i <= document.NumberOfPages; i++)
+                {
+                    var page = document.GetPage(i);
+                    string text = page.Text;
+
+                    string nombre = ObtenerNombre2(text, i - 1);
+
+                    // Limpiar nombre para archivo
+                    nombre = LimpiarNombreArchivo(nombre);
+
+                    string outputPath = Path.Combine(outputFolder, $"{nombre}.pdf");
+
+                    // Crear nuevo PDF con una sola página
+                    var outputPdf = new PdfSharp.Pdf.PdfDocument();
+                    outputPdf.AddPage(pdfSharpDoc.Pages[i - 1]);
+                    outputPdf.Save(outputPath);
+
+                    Console.WriteLine($"Creado: {outputPath}");
+                }
+            }
         }
     }
 }
