@@ -1,0 +1,285 @@
+﻿using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Office2013.Drawing.ChartStyle;
+using DocumentFormat.OpenXml.Spreadsheet;
+using QRCoder;
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
+using System.Linq;
+using System.Net.Mail;
+using System.Net.Mail;
+using System.Net.NetworkInformation;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
+using static QRCoder.PayloadGenerator;
+
+
+namespace ConsoleApp1
+{
+    public class Program
+    {
+        public static string direccionSitioWebR1 = "http://www.pge.gob.ec/images/2026/diplomas/dr1_cp";
+        public static string direccionSitioWebP = "http://www.pge.gob.ec/images/2026/diplomas";
+        public static int direccion = -1;
+        public static string nombreCurso = "";
+        public static string rutaArchivo = AppDomain.CurrentDomain.BaseDirectory + "usuariosCurso.xlsx";
+        public static Bitmap GenerateQRCode(string content, int width = 250)
+        {
+            QRCodeGenerator qrGenerator = new QRCodeGenerator();
+            QRCodeData qrCodeData = qrGenerator.CreateQrCode(content, QRCodeGenerator.ECCLevel.Q);
+            QRCode qrCode = new QRCode(qrCodeData);
+
+            Bitmap qrCodeImage = qrCode.GetGraphic(width);
+            return qrCodeImage;
+        }
+        public static Bitmap GenerateQRCodeURL(Url url, int width = 100)
+        {
+            QRCodeGenerator qrGenerator = new QRCodeGenerator();
+            QRCodeData qrCodeData = qrGenerator.CreateQrCode(url, QRCodeGenerator.ECCLevel.H);
+            QRCode qrCode = new QRCode(qrCodeData);
+
+            string archivo = @"Resources\\QrPGE.png";
+            string rutaRelativa = Path.GetFullPath(archivo);
+
+            Bitmap qrCodeImage = qrCode.GetGraphic(width, System.Drawing.Color.Black, System.Drawing.Color.White, (Bitmap)Bitmap.FromFile(rutaRelativa));
+            return qrCodeImage;
+        }
+        public static List<string> CargarListadoDeParticipantes(string urlArchivo)
+        {
+            int indice = 1;
+            List<string> participantes = new List<string>();
+
+            try
+            {
+                if (string.IsNullOrWhiteSpace(urlArchivo) || !File.Exists(urlArchivo))
+                {
+                    // usar Console.WriteLine para evitar dependencias UI en modo consola
+                    Console.WriteLine("Archivo no encontrado: " + urlArchivo);
+                    return new List<string>();
+                }
+
+                using (var wb = new XLWorkbook(urlArchivo))
+                {
+                    var ws = wb.Worksheet(1);
+
+                    // Leer filas hasta encontrar una celda vacía en la columna 1
+                    while (true)
+                    {
+                        var control = ws.Cell(indice, 1).GetString();
+                        if (string.IsNullOrWhiteSpace(control)) break;
+
+                        if (indice == 1)
+                        {
+                            nombreCurso = ws.Cell(indice, 2).GetString()?.Trim() ?? string.Empty;
+                            participantes.Add(nombreCurso);
+                        }
+                        else if (indice == 2)
+                        {
+                            // omitir segunda fila según lógica original
+                        }
+                        else
+                        {
+                            string nombreUsuario = ws.Cell(indice, 2).GetString()?.Trim() ?? string.Empty;
+                            if (!string.IsNullOrEmpty(nombreUsuario)) participantes.Add(nombreUsuario);
+                        }
+
+                        indice++;
+                        if (indice > 200000) break; // seguridad
+                    }
+                }
+
+                return participantes;
+            }
+            catch (Exception ex)
+            {
+                // Mostrar mensaje y stacktrace en consola para diagnóstico
+                Console.WriteLine("Error leyendo archivo Excel: " + ex.Message + "\n" + ex.StackTrace);
+                return new List<string>();
+            }
+        }
+
+        public static void GenerarCodigoQRs(List<string> participantes, Action<int> actualizarProgreso)
+        {
+            string rutaNombreArchivo = "";
+            if(direccion == -1)
+            {
+                MessageBox.Show("Seleccione una dirección");
+                return;
+            }
+
+            double avance = 100/participantes.Count;
+            int progreso = 0;
+            foreach (var participante in participantes)
+            {                
+                if(direccion == 0)
+                {
+                    rutaNombreArchivo = @"" + direccionSitioWebP + "/" + nombreCurso + "/" + participante + ".pdf";
+                }
+                if(direccion == 1)
+                {
+                    rutaNombreArchivo = @"" + direccionSitioWebR1 + "/" + nombreCurso + "/" + participante + ".pdf";
+                }
+                
+                string nombreImagenQR = @"C:\QRs\"+participante + ".png";
+                Url urlArchivo = new Url(rutaNombreArchivo);
+                Bitmap qrCode = GenerateQRCodeURL(urlArchivo);               
+                qrCode.Save(nombreImagenQR, ImageFormat.Png);
+
+                actualizarProgreso((int)Math.Round((progreso + 1) * avance));
+                progreso++;
+            }
+        }    
+        public static Bitmap GenerateQRCodeURL1(Url url, int width = 100)
+        {
+            QRCodeGenerator qrGenerator = new QRCodeGenerator();
+            QRCodeData qrCodeData = qrGenerator.CreateQrCode(url, QRCodeGenerator.ECCLevel.H);
+            QRCode qrCode = new QRCode(qrCodeData);
+
+            //string archivo = @"Resources\\QrPGE.png";
+            string archivo = @"Resources\\pge_3.jpg";
+            string rutaRelativa = Path.GetFullPath(archivo);
+
+            //Bitmap qrCodeImage = qrCode.GetGraphic(width, Color.Black, Color.White, (Bitmap)Bitmap.FromFile(rutaRelativa),15,0,false,Color.Red);
+            Bitmap qrCodeImage = qrCode.GetGraphic(width, System.Drawing.Color.Black, System.Drawing.Color.White, (Bitmap)Bitmap.FromFile(rutaRelativa));
+            //public Bitmap GetGraphic(int pixelsPerModule, Color darkColor, Color lightColor, Bitmap icon = null, int iconSizePercent = 15, int iconBorderWidth = 0, bool drawQuietZones = true, Color? iconBackgroundColor = null)
+            return qrCodeImage;
+        }
+        public static void Main(string[] args)
+        {
+            //List<string> participantes = new List<string>
+            //{
+            //    "GLORIA_ALICIA_RIOS_SOLA",
+            //    "UMBERTO_GABRIEL_FERNANDO_MENENDEZ_BOLONA",
+            //    "MARLON_EWALD_VOGELEY_SERRANO"
+            //};
+
+
+            //foreach (var participante in participantes)
+            //{
+            //    string rutaNombreArchivo = @"" + direccionSitioWebP + "/" + nombreCurso + "/" + participante + ".pdf";
+            //    string nombreImagenQR = participante + ".png";
+            //    Url urlArchivo = new Url(rutaNombreArchivo);
+            //    Bitmap qrCode = GenerateQRCodeURL(urlArchivo);
+            //    qrCode.Save(nombreImagenQR);
+            //    Console.WriteLine("Código QR generado con éxito");
+            //    Console.WriteLine("Ruta archivo generado: " + urlArchivo);
+            //    Console.WriteLine("Nombre imagen qr: " + nombreImagenQR);
+            //    Console.WriteLine("-----------------------------------");
+            //}
+
+            string rutaNombreArchivo = @"https://pgeecuador-my.sharepoint.com/:v:/g/personal/planificacion_pge_gob_ec/IQDq2Fc4pcAuTLWTllplVyt1AY8hbfLICBSgnBdtnXqL75U?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=Z6ujas";
+            //string nombreImagenQR = "QrPGE_2025" + ".png";
+            //Url urlArchivo = new Url(rutaNombreArchivo);
+
+            Url urlArchivo1 = new Url(rutaNombreArchivo);
+            Bitmap qrCode = GenerateQRCodeURL1(urlArchivo1);
+            qrCode.Save("QR_ISO_37001.png", ImageFormat.Png);
+
+            //Bitmap qrCode = GenerateQRCodeURL(urlArchivo);
+            //qrCode.Save(nombreImagenQR);
+            //string tipo_trabajo = "11976 - REPOSICIÓN DE VIA SECUNDARIA-AA.PP";
+            //string variable = tipo_trabajo.Substring(tipo_trabajo.IndexOf("-") + 1).TrimStart().TrimEnd();
+            //string variablecodigo = tipo_trabajo.Substring(0, tipo_trabajo.IndexOf("-") - 1).TrimStart().TrimEnd();
+            //Console.WriteLine(variable);
+            //Console.WriteLine(variablecodigo);
+            Console.ReadLine();
+        }
+        public static void Main2(string[] args)
+        {
+            // Ruta del recurso compartido (sin el "file://")
+            string origen = @"\\10.12.1.7\eventos pge";
+
+            // Carpeta local donde guardar
+            string destino = @"C:\descargas";
+
+            // Crear carpeta local si no existe
+            if (!Directory.Exists(destino))
+            {
+                Directory.CreateDirectory(destino);
+            }
+
+            try
+            {
+                // Copiar todos los archivos del directorio raíz
+                foreach (string archivo in Directory.GetFiles(origen))
+                {
+                    string nombreArchivo = Path.GetFileName(archivo);
+                    string destinoArchivo = Path.Combine(destino, nombreArchivo);
+
+                    File.Copy(archivo, destinoArchivo, true);
+                    Console.WriteLine($"Copiado: {nombreArchivo}");
+                }
+
+                // Si quieres también incluir subcarpetas:
+                foreach (string carpeta in Directory.GetDirectories(origen, "*", SearchOption.AllDirectories))
+                {
+                    string rutaRelativa = carpeta.Substring(origen.Length).TrimStart('\\');
+                    string nuevaCarpetaDestino = Path.Combine(destino, rutaRelativa);
+
+                    if (!Directory.Exists(nuevaCarpetaDestino))
+                    {
+                        Directory.CreateDirectory(nuevaCarpetaDestino);
+                    }
+
+                    foreach (string archivo in Directory.GetFiles(carpeta))
+                    {
+                        string nombreArchivo = Path.GetFileName(archivo);
+                        string destinoArchivo = Path.Combine(nuevaCarpetaDestino, nombreArchivo);
+
+                        File.Copy(archivo, destinoArchivo, true);
+                        Console.WriteLine($"Copiado: {destinoArchivo}");
+                    }
+                }
+
+                Console.WriteLine("✅ Descarga completa.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error: {ex.Message}");
+            }
+        }
+        public static void Main5(string[] args)
+        {
+            var emails = ObtenerCorreosArchivo();
+            foreach (var email in emails)
+            {                
+                bool valido = EsCorreoValido(email);
+                Console.WriteLine("Correo valido: " + email + ": " + valido);
+            }
+            Console.ReadLine();
+        }
+
+        public static bool EsCorreoValido(string email)
+        {
+            try
+            {
+                var addr = new MailAddress(email);
+                return addr.Address == email;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static List<string> ObtenerCorreosArchivo()
+        {
+            var emails = new List<string>();
+
+            using (var workbook = new XLWorkbook("subsc_agosto_2025.xlsx"))
+            {
+                var worksheet = workbook.Worksheet(1); // primera hoja
+                foreach (var row in worksheet.RowsUsed().Skip(1)) // omite la primera fila
+                {
+                    string correo = row.Cell(3).GetString(); // columna A
+                    emails.Add(correo);
+                }
+            }
+
+            return emails;
+        }
+    }
+}

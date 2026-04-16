@@ -70,3 +70,4 @@ C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrApp\bin\Debug\net8.0-
 C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrApp\bin\Debug\net8.0-windows10.0.18362.0\RBush.dll
 C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrApp\bin\Debug\net8.0-windows10.0.18362.0\SixLabors.Fonts.dll
 C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrApp\bin\Debug\net8.0-windows10.0.18362.0\System.IO.Packaging.dll
+C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrApp\obj\Debug\net8.0-windows10.0.18362.0\QrApp.sourcelink.json

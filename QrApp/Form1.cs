@@ -12,6 +12,9 @@ namespace QrApp
     public partial class Form1 : Form
     {
         public List<string> participantes;
+        private List<string> participantesOriginales;
+        private string? rutaPlantillaCertificado;
+
         public Form1()
         {
             InitializeComponent(); ;
@@ -19,6 +22,7 @@ namespace QrApp
             this.StartPosition = FormStartPosition.CenterScreen;
             textBox2.Text = P1.Program.nombreCurso;
             participantes = new List<string>();
+            participantesOriginales = new List<string>();
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -30,37 +34,36 @@ namespace QrApp
 
         private void button1_Click(object sender, EventArgs e)
         {
-            if (comboBox1.SelectedItem.ToString().Length == 0)
+            if (comboBox1.SelectedItem == null)
             {
                 MessageBox.Show("Seleccione una sede PGE");
                 return;
             }
+
+            openFileDialog1.Title = "Seleccione el archivo Excel";
+            openFileDialog1.Filter = "Archivos Excel (*.xlsx)|*.xlsx";
 
             if (!(openFileDialog1.ShowDialog() == DialogResult.OK))
             {
                 return;
             }
 
-            //Obtener participantes de archivo excel con formato
-            participantes = P1.Program.CargarListadoDeParticipantes(openFileDialog1.FileName);
+            var participantesCargados = P1.Program.CargarListadoDeParticipantes(openFileDialog1.FileName);
 
-            if (participantes.Count == 0)
+            if (participantesCargados.Count == 0)
             {
                 return;
             }
 
-            //Definir el nombre del curso  en funcion del archivo excel
-            P1.Program.nombreCurso = P1.UtilidadesString.LimpiarNombreParticipante(participantes.First());
+            P1.Program.nombreCurso = P1.UtilidadesString.LimpiarNombreParticipante(participantesCargados.First());
             textBox2.Text = "";
             textBox2.Text = P1.Program.nombreCurso;
 
-            //Limpiar los nombres de los participantes de tildes, espacios en blanco y enes
-            participantes = P1.UtilidadesString.LimpiarNombresParticipantes(participantes);
+            participantesOriginales = participantesCargados.Skip(1).ToList();
+            participantes = P1.UtilidadesString.LimpiarNombresParticipantes(participantesCargados);
 
-            //Muestro el nombre del archivo en pantalla
             label5.Text = openFileDialog1.FileName;
             MessageBox.Show("Se realizo la carga del archivo excel " + openFileDialog1.FileName);
-
         }
 
         private void textBox2_TextChanged(object sender, EventArgs e)
@@ -104,18 +107,62 @@ namespace QrApp
                 return;
             }
 
-            if (participantes.Count == 0)
+            if (participantes.Count == 0 || participantesOriginales.Count == 0)
             {
                 MessageBox.Show("No existen usuarios, en la plantilla de documento cargada. \nVerificar documento?");
                 return;
             }
 
-            //Calcular pasos
-            int step = participantes.Count / 100;
+            if (participantes.Count != participantesOriginales.Count)
+            {
+                MessageBox.Show("El listado de nombres originales no coincide con el listado de QRs.");
+                return;
+            }
 
-            P1.Program.GenerarCodigoQRs(participantes, ActualizarProgreso);
+            if (string.IsNullOrWhiteSpace(rutaPlantillaCertificado) || !File.Exists(rutaPlantillaCertificado))
+            {
+                MessageBox.Show("Debe cargar primero el archivo PowerPoint del certificado.");
+                return;
+            }
 
-            MessageBox.Show("Se han creado los codigos QRs, del listado de personas del archivo excel");
+            if (P1.Program.direccion == -1)
+            {
+                MessageBox.Show("Seleccione una dirección");
+                return;
+            }
+
+            progressBar1.Value = 0;
+
+            string extensionPlantilla = Path.GetExtension(rutaPlantillaCertificado);
+            string carpetaSalida = Path.Combine(
+                Path.GetDirectoryName(rutaPlantillaCertificado)!,
+                "CertificadosGenerados",
+                LimpiarNombreArchivo(textBox2.Text));
+
+            Directory.CreateDirectory(carpetaSalida);
+
+            try
+            {
+                for (int i = 0; i < participantes.Count; i++)
+                {
+                    string nombreOriginal = participantesOriginales[i];
+                    string nombreQr = participantes[i];
+                    string rutaPdf = ConstruirRutaCertificado(nombreQr);
+                    string rutaSalida = Path.Combine(carpetaSalida, $"{LimpiarNombreArchivo(nombreOriginal)}{extensionPlantilla}");
+
+                    using var qrCode = P1.Program.GenerateQRCodeFromUrl(rutaPdf);
+                    CertificadosPowerPoint.CrearDesdePlantilla(rutaPlantillaCertificado, rutaSalida, nombreOriginal, qrCode);
+                    CertificadosPowerPoint.ExportarAPdf(rutaSalida);
+
+                    ActualizarProgreso((int)Math.Round(((i + 1d) / participantes.Count) * 100));
+                }
+
+                MessageBox.Show("Se han creado los certificados en PowerPoint y PDF en: " + carpetaSalida);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error al generar certificados: " + ex.Message);
+            }
         }
 
         public void ActualizarProgreso(int progreso)
@@ -526,6 +573,50 @@ namespace QrApp
                     Console.WriteLine($"Creado: {outputPath}");
                 }
             }
+        }
+
+        private void pictureBox1_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label7_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            openFileDialog1.Title = "Seleccione la plantilla del certificado";
+            openFileDialog1.Filter = "Presentaciones PowerPoint (*.pptx;*.pptm)|*.pptx;*.pptm";
+
+            if (!(openFileDialog1.ShowDialog() == DialogResult.OK))
+            {
+                return;
+            }
+
+            rutaPlantillaCertificado = openFileDialog1.FileName;
+            label7.Text = rutaPlantillaCertificado;
+        }
+
+        private string ConstruirRutaCertificado(string participante)
+        {
+            if (P1.Program.direccion == 0)
+            {
+                return P1.Program.direccionSitioWebP + "/" + P1.Program.nombreCurso + "/" + participante + ".pdf";
+            }
+
+            if (P1.Program.direccion == 1)
+            {
+                return P1.Program.direccionSitioWebR1 + "/" + P1.Program.nombreCurso + "/" + participante + ".pdf";
+            }
+
+            throw new InvalidOperationException("Seleccione una dirección válida.");
+        }
+
+        private void label1_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

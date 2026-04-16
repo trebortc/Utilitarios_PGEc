@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("QrApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a65f18ca1a82d18fd28bdaf818cef5731d50e470")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9b3d5f8a049ea5b21ee4e2f125d137e45e590fcc")]
 [assembly: System.Reflection.AssemblyProductAttribute("QrApp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("QrApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

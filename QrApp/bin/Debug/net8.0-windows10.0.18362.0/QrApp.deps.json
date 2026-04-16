@@ -348,14 +348,6 @@
             "fileVersion": "1.4.3.0"
           }
         }
-      },
-      "SpreadsheetLight/3.4.5.0": {
-        "runtime": {
-          "SpreadsheetLight.dll": {
-            "assemblyVersion": "3.4.5.0",
-            "fileVersion": "3.4.5.0"
-          }
-        }
       }
     }
   },
@@ -535,11 +527,6 @@
       "sha512": ""
     },
     "QRCoder/1.4.3.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "SpreadsheetLight/3.4.5.0": {
       "type": "reference",
       "serviceable": false,
       "sha512": ""

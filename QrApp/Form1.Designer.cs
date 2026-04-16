@@ -54,6 +54,9 @@
             subirArchivosToolStripMenuItem = new ToolStripMenuItem();
             folderBrowserDialog1 = new FolderBrowserDialog();
             progressBar1 = new ProgressBar();
+            CargarArchivoBase = new Label();
+            button3 = new Button();
+            label7 = new Label();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             menuStrip1.SuspendLayout();
             SuspendLayout();
@@ -164,16 +167,17 @@
             // pictureBox1
             // 
             pictureBox1.Image = ResourceForm.QrPGE;
-            pictureBox1.Location = new Point(311, 458);
+            pictureBox1.Location = new Point(327, 462);
             pictureBox1.Name = "pictureBox1";
             pictureBox1.Size = new Size(180, 57);
             pictureBox1.SizeMode = PictureBoxSizeMode.StretchImage;
             pictureBox1.TabIndex = 11;
             pictureBox1.TabStop = false;
+            pictureBox1.Click += pictureBox1_Click;
             // 
             // button2
             // 
-            button2.Location = new Point(351, 399);
+            button2.Location = new Point(351, 427);
             button2.Name = "button2";
             button2.Size = new Size(140, 29);
             button2.TabIndex = 12;
@@ -263,10 +267,39 @@
             // 
             // progressBar1
             // 
-            progressBar1.Location = new Point(108, 345);
+            progressBar1.Location = new Point(108, 392);
             progressBar1.Name = "progressBar1";
             progressBar1.Size = new Size(622, 29);
             progressBar1.TabIndex = 14;
+            // 
+            // CargarArchivoBase
+            // 
+            CargarArchivoBase.AutoSize = true;
+            CargarArchivoBase.Location = new Point(16, 317);
+            CargarArchivoBase.Name = "CargarArchivoBase";
+            CargarArchivoBase.Size = new Size(137, 20);
+            CargarArchivoBase.TabIndex = 15;
+            CargarArchivoBase.Text = "Cargar certificado:";
+            // 
+            // button3
+            // 
+            button3.Location = new Point(168, 346);
+            button3.Name = "button3";
+            button3.Size = new Size(134, 29);
+            button3.TabIndex = 16;
+            button3.Text = "cargar archivo";
+            button3.UseVisualStyleBackColor = true;
+            button3.Click += button3_Click;
+            // 
+            // label7
+            // 
+            label7.AutoSize = true;
+            label7.Location = new Point(168, 317);
+            label7.MinimumSize = new Size(600, 0);
+            label7.Name = "label7";
+            label7.Size = new Size(600, 20);
+            label7.TabIndex = 17;
+            label7.Click += label7_Click;
             // 
             // Form1
             // 
@@ -274,6 +307,9 @@
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = SystemColors.ControlLight;
             ClientSize = new Size(820, 556);
+            Controls.Add(label7);
+            Controls.Add(button3);
+            Controls.Add(CargarArchivoBase);
             Controls.Add(progressBar1);
             Controls.Add(button2);
             Controls.Add(pictureBox1);
@@ -329,5 +365,8 @@
         private ToolStripMenuItem copiarDatosArchivoToolStripMenuItem;
         private ToolStripMenuItem separarPdfToolStripMenuItem;
         private ToolStripMenuItem separarPdf2ToolStripMenuItem;
+        private Label CargarArchivoBase;
+        private Button button3;
+        private Label label7;
     }
 }

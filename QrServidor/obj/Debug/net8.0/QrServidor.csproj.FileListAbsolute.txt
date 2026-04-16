@@ -25,3 +25,4 @@ C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrServidor\obj\Debug\ne
 C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrServidor\obj\Debug\net8.0\QrServidor.pdb
 C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrServidor\obj\Debug\net8.0\QrServidor.genruntimeconfig.cache
 C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrServidor\obj\Debug\net8.0\ref\QrServidor.dll
+C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrServidor\obj\Debug\net8.0\QrServidor.sourcelink.json

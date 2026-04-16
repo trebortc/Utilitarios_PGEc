@@ -12,3 +12,4 @@ C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrLibreria\obj\Debug\ne
 C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrLibreria\obj\Debug\net8.0\QrLibreria.pdb
 C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrLibreria\obj\Debug\net8.0\QrLibreria.genruntimeconfig.cache
 C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrLibreria\obj\Debug\net8.0\ref\QrLibreria.dll
+C:\Users\robert.tene.QUITO\Documents\Scripts\ConsoleApp1\QrLibreria\obj\Debug\net8.0\QrLibreria.sourcelink.json

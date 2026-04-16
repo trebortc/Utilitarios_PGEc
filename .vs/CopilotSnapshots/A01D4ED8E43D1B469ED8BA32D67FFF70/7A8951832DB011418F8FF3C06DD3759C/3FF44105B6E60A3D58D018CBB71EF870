@@ -1,0 +1,107 @@
+﻿using DocumentFormat.OpenXml.Packaging;
+using A = DocumentFormat.OpenXml.Drawing;
+using P = DocumentFormat.OpenXml.Presentation;
+using System.Drawing;
+using System.Drawing.Imaging;
+
+namespace QrApp.Utilidades;
+
+public static class CertificadosPowerPoint
+{
+    public static void CrearDesdePlantilla(string rutaPlantilla, string rutaSalida, string nombrePersona, Bitmap qrBitmap)
+    {
+        File.Copy(rutaPlantilla, rutaSalida, true);
+
+        using var documento = PresentationDocument.Open(rutaSalida, true);
+
+        bool textoReemplazado = false;
+        bool imagenReemplazada = false;
+
+        foreach (var slidePart in ObtenerSlides(documento))
+        {
+            textoReemplazado |= ReemplazarTexto(slidePart, "{{NOMBRE_PERSONA}}", nombrePersona);
+            imagenReemplazada |= ReemplazarImagen(slidePart, "QR_PLACEHOLDER", qrBitmap);
+            slidePart.Slide.Save();
+        }
+
+        documento.PresentationPart?.Presentation.Save();
+
+        if (!textoReemplazado)
+            throw new InvalidOperationException("No se encontró el marcador {{NOMBRE_PERSONA}} en la plantilla de PowerPoint.");
+
+        if (!imagenReemplazada)
+            throw new InvalidOperationException("No se encontró la imagen QR_PLACEHOLDER en la plantilla de PowerPoint.");
+    }
+
+    private static IEnumerable<SlidePart> ObtenerSlides(PresentationDocument documento)
+    {
+        var presentationPart = documento.PresentationPart;
+        if (presentationPart?.Presentation?.SlideIdList == null)
+            yield break;
+
+        foreach (P.SlideId slideId in presentationPart.Presentation.SlideIdList.Elements<P.SlideId>())
+        {
+            if (presentationPart.GetPartById(slideId.RelationshipId!) is SlidePart slidePart)
+                yield return slidePart;
+        }
+    }
+
+    private static bool ReemplazarTexto(SlidePart slidePart, string marcador, string valor)
+    {
+        bool reemplazado = false;
+
+        foreach (var texto in slidePart.Slide.Descendants<A.Text>())
+        {
+            if (!texto.Text.Contains(marcador, StringComparison.Ordinal))
+                continue;
+
+            texto.Text = texto.Text.Replace(marcador, valor, StringComparison.Ordinal);
+            reemplazado = true;
+        }
+
+        return reemplazado;
+    }
+
+    private static bool ReemplazarImagen(SlidePart slidePart, string nombreImagen, Bitmap qrBitmap)
+    {
+        bool reemplazado = false;
+
+        var pictures = slidePart.Slide.Descendants<P.Picture>()
+            .Where(p => string.Equals(
+                p.NonVisualPictureProperties?.NonVisualDrawingProperties?.Name?.Value,
+                nombreImagen,
+                StringComparison.OrdinalIgnoreCase));
+
+        foreach (var picture in pictures)
+        {
+            var relationshipId = picture.BlipFill?.Blip?.Embed?.Value;
+            if (string.IsNullOrWhiteSpace(relationshipId))
+                continue;
+
+            if (slidePart.GetPartById(relationshipId) is not ImagePart imagePart)
+                continue;
+
+            using var stream = new MemoryStream();
+            GuardarBitmap(qrBitmap, imagePart.ContentType, stream);
+            stream.Position = 0;
+            imagePart.FeedData(stream);
+            reemplazado = true;
+        }
+
+        return reemplazado;
+    }
+
+    private static void GuardarBitmap(Bitmap qrBitmap, string contentType, Stream stream)
+    {
+        var formato = ImageFormat.Png;
+
+        if (string.Equals(contentType, "image/jpeg", StringComparison.OrdinalIgnoreCase))
+            formato = ImageFormat.Jpeg;
+        else if (string.Equals(contentType, "image/bmp", StringComparison.OrdinalIgnoreCase))
+            formato = ImageFormat.Bmp;
+        else if (string.Equals(contentType, "image/gif", StringComparison.OrdinalIgnoreCase))
+            formato = ImageFormat.Gif;
+
+        qrBitmap.Save(stream, formato);
+    }
+}

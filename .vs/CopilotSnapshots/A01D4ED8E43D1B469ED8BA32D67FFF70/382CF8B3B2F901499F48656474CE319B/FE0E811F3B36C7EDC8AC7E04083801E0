@@ -1,0 +1,621 @@
+﻿using ClosedXML.Excel;
+using PdfSharp.Pdf;
+using PdfSharp.Pdf.IO;
+using QrApp.Utilidades;
+using QrServidor;
+using System.Text.RegularExpressions;
+using UglyToad.PdfPig;
+using P1 = ConsoleApp1;
+
+namespace QrApp
+{
+    public partial class Form1 : Form
+    {
+        public List<string> participantes;
+        private List<string> participantesOriginales;
+        private string? rutaPlantillaCertificado;
+
+        public Form1()
+        {
+            InitializeComponent(); ;
+            textBox1.Enabled = false;
+            this.StartPosition = FormStartPosition.CenterScreen;
+            textBox2.Text = P1.Program.nombreCurso;
+            participantes = new List<string>();
+            participantesOriginales = new List<string>();
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            progressBar1.Visible = true;
+            progressBar1.Minimum = 0;
+            progressBar1.Maximum = 100;
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            if (comboBox1.SelectedItem == null)
+            {
+                MessageBox.Show("Seleccione una sede PGE");
+                return;
+            }
+
+            openFileDialog1.Title = "Seleccione el archivo Excel";
+            openFileDialog1.Filter = "Archivos Excel (*.xlsx)|*.xlsx";
+
+            if (!(openFileDialog1.ShowDialog() == DialogResult.OK))
+            {
+                return;
+            }
+
+            var participantesCargados = P1.Program.CargarListadoDeParticipantes(openFileDialog1.FileName);
+
+            if (participantesCargados.Count == 0)
+            {
+                return;
+            }
+
+            P1.Program.nombreCurso = P1.UtilidadesString.LimpiarNombreParticipante(participantesCargados.First());
+            textBox2.Text = "";
+            textBox2.Text = P1.Program.nombreCurso;
+
+            participantesOriginales = participantesCargados.Skip(1).ToList();
+            participantes = P1.UtilidadesString.LimpiarNombresParticipantes(participantesCargados);
+
+            label5.Text = openFileDialog1.FileName;
+            MessageBox.Show("Se realizo la carga del archivo excel " + openFileDialog1.FileName);
+        }
+
+        private void textBox2_TextChanged(object sender, EventArgs e)
+        {
+            P1.Program.nombreCurso = textBox2.Text;
+        }
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (comboBox1.SelectedIndex == 0)
+            {
+                P1.Program.direccion = 0;
+                textBox1.Text = P1.Program.direccionSitioWebP;
+            }
+
+            if (comboBox1.SelectedIndex == 1)
+            {
+                P1.Program.direccion = 1;
+                textBox1.Text = P1.Program.direccionSitioWebR1;
+            }
+
+        }
+
+        private void label4_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label6_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            DialogResult resultado = MessageBox.Show("Esta seguro que desea generar los códigos QRs?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            progressBar1.Visible = true;
+
+            if (!(resultado == DialogResult.Yes))
+            {
+                return;
+            }
+
+            if (participantes.Count == 0 || participantesOriginales.Count == 0)
+            {
+                MessageBox.Show("No existen usuarios, en la plantilla de documento cargada. \nVerificar documento?");
+                return;
+            }
+
+            if (participantes.Count != participantesOriginales.Count)
+            {
+                MessageBox.Show("El listado de nombres originales no coincide con el listado de QRs.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(rutaPlantillaCertificado) || !File.Exists(rutaPlantillaCertificado))
+            {
+                MessageBox.Show("Debe cargar primero el archivo PowerPoint del certificado.");
+                return;
+            }
+
+            if (P1.Program.direccion == -1)
+            {
+                MessageBox.Show("Seleccione una dirección");
+                return;
+            }
+
+            progressBar1.Value = 0;
+
+            string extensionPlantilla = Path.GetExtension(rutaPlantillaCertificado);
+            string carpetaSalida = Path.Combine(
+                Path.GetDirectoryName(rutaPlantillaCertificado)!,
+                "CertificadosGenerados",
+                LimpiarNombreArchivo(textBox2.Text));
+
+            Directory.CreateDirectory(carpetaSalida);
+
+            try
+            {
+                for (int i = 0; i < participantes.Count; i++)
+                {
+                    string nombreOriginal = participantesOriginales[i];
+                    string nombreQr = participantes[i];
+                    string rutaPdf = ConstruirRutaCertificado(nombreQr);
+                    string rutaSalida = Path.Combine(carpetaSalida, $"{LimpiarNombreArchivo(nombreOriginal)}{extensionPlantilla}");
+
+                    using var qrCode = P1.Program.GenerateQRCodeFromUrl(rutaPdf);
+                    CertificadosPowerPoint.CrearDesdePlantilla(rutaPlantillaCertificado, rutaSalida, nombreOriginal, qrCode);
+
+                    ActualizarProgreso((int)Math.Round(((i + 1d) / participantes.Count) * 100));
+                }
+
+                MessageBox.Show("Se han creado los certificados con QR en: " + carpetaSalida);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error al generar certificados: " + ex.Message);
+            }
+        }
+
+        public void ActualizarProgreso(int progreso)
+        {
+            Console.WriteLine("--->Progreso: " + progreso);
+            // Verifica si la actualización se realiza en el hilo de la interfaz de usuario
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => progressBar1.Value = progreso));
+            }
+            else
+            {
+                progressBar1.Value = progreso;
+            }
+        }
+
+        private void limpiarNombresToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string? ruta = folderBrowserDialog1.obtenerRutaCarpetaSeleccionada();
+
+            if (string.IsNullOrEmpty(ruta))
+            {
+                return;
+            }
+
+            DialogResult resultado = MessageBox.Show(" ¿Desea limpiar los nombres de los archivos de la ruta: \n " + ruta + " ?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if (!(resultado == DialogResult.Yes))
+            {
+                return;
+            }
+
+            AccionesArchivos.LimpiarNombreArchivo(ruta);
+        }
+
+        private void ordenNombresToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string? ruta = folderBrowserDialog1.obtenerRutaCarpetaSeleccionada();
+
+            if (string.IsNullOrEmpty(ruta))
+            {
+                return;
+            }
+
+            DialogResult resultado = MessageBox.Show(" ¿Desea cambiar el orden de los nombres de los archivos de la ruta: \n " + ruta + " ?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            AccionesArchivos.InvertirNombresPorApellidos(ruta);
+        }
+
+        private void generarCarpetaToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Console.WriteLine("Hello, World!");
+            var credencialesServidor = UtilitariosServidor.ObtenerCredencialesServidor();
+            var sessionOptions = UtilitariosServidor.IniciarSesion(credencialesServidor);
+            UtilitariosServidor.CrearCarpeta(sessionOptions, textBox2.Text, 1);
+        }
+
+        private void subirArchivosToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (!(openFileDialog1.ShowDialog() == DialogResult.OK))
+            {
+                return;
+            }
+
+            var credencialesServidor = UtilitariosServidor.ObtenerCredencialesServidor();
+            var sessionOptions = UtilitariosServidor.IniciarSesion(credencialesServidor);
+
+            UtilitariosServidor.SubirCarpeta(sessionOptions, textBox2.Text, openFileDialog1.FileName.ToString());
+        }
+
+        private void virarArchivosToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string? ruta = folderBrowserDialog1.obtenerRutaCarpetaSeleccionada();
+
+            if (string.IsNullOrEmpty(ruta))
+            {
+                return;
+            }
+
+            DialogResult resultado = MessageBox.Show(" ¿Desea virar los archivos: \n " + ruta + " ?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if (!(resultado == DialogResult.Yes))
+            {
+                return;
+            }
+
+            AccionesArchivos.Virar(ruta);
+        }
+
+        private void copiarDatosArchivoToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string? archivo = openFileDialog1.ObtenerArchivoSeleccionado();
+
+            if (string.IsNullOrEmpty(archivo))
+            {
+                return;
+            }
+
+            DialogResult resultado = MessageBox.Show(" ¿Desea procesar el archivo PDF página por página: \n " + archivo + " ?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if (!(resultado == DialogResult.Yes))
+            {
+                return;
+            }
+
+            var inputPdf = archivo;
+            var outputXlsx = "Planillaje_Extraido.xlsx";
+
+            // Leer páginas por separado
+            var paginas = CopiarRegistrosPdf.LeerPaginasPorSeparado(inputPdf);
+            if (paginas == null || paginas.Count == 0)
+            {
+                MessageBox.Show("No se pudieron leer las páginas del PDF.");
+                return;
+            }
+
+            string origenBloque = ""; // mantiene estado entre páginas
+
+            foreach (var pagina in paginas)
+            {
+                // Mostrar vista previa corta para que el usuario decida
+                var preview = string.Join("\n", pagina.Lineas.Take(6));
+                var pregunta = $"Procesar página {pagina.NumeroPagina} de {paginas.Count}?\n\nPreview (primeras líneas):\n{preview}";
+
+                var r = MessageBox.Show(pregunta, "Procesar página", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+                if (r == DialogResult.Cancel)
+                {
+                    // finalizar proceso
+                    break;
+                }
+
+                if (r == DialogResult.No)
+                {
+                    // saltar esta página
+                    continue;
+                }
+
+                // Extraer registros sólo de esta página
+                var regsPagina = CopiarRegistrosPdf.ExtraerRegistrosDesdeLineas(pagina.Lineas, ref origenBloque, pagina.NumeroPagina);
+
+                if (regsPagina == null || regsPagina.Count == 0)
+                {
+                    MessageBox.Show($"Página {pagina.NumeroPagina}: no se encontraron registros.");
+                    continue;
+                }
+
+                // Abrir o crear workbook y hoja
+                XLWorkbook wb;
+                IXLWorksheet ws;
+
+                if (System.IO.File.Exists(outputXlsx))
+                {
+                    wb = new XLWorkbook(outputXlsx);
+                    if (wb.Worksheets.Contains("Planillaje"))
+                        ws = wb.Worksheet("Planillaje");
+                    else
+                        ws = wb.Worksheets.Add("Planillaje");
+                }
+                else
+                {
+                    wb = new XLWorkbook();
+                    ws = wb.Worksheets.Add("Planillaje");
+                    // escribir encabezados
+                    var headers = new[]
+                    {
+                        "OrigenBloque","Item","Guia","Tipo","Fecha","OrigenCiudad","Usuario",
+                        "ClienteUnidad","CiudadDestino","SectorDestino","Destinatario","Contenido",
+                        "PKg","PVol","Valor","Seg","IVA","Total"
+                    };
+                    for (int i = 0; i < headers.Length; i++)
+                        ws.Cell(1, i + 1).Value = headers[i];
+                }
+
+                // Determinar la primera fila disponible
+                int startRow = 2;
+                var last = ws.LastRowUsed();
+                if (last != null)
+                {
+                    startRow = last.RowNumber() + 1;
+                }
+
+                // Escribir registros de la página
+                int row = startRow;
+                foreach (var item in regsPagina)
+                {
+                    ws.Cell(row, 1).Value = item.OrigenBloque;
+                    ws.Cell(row, 2).Value = item.Item;
+                    ws.Cell(row, 3).Value = item.Guia;
+                    ws.Cell(row, 4).Value = item.Tipo;
+                    ws.Cell(row, 5).Value = item.Fecha?.ToString("yyyy-MM-dd");
+                    ws.Cell(row, 6).Value = item.OrigenCiudad;
+                    ws.Cell(row, 7).Value = item.Usuario;
+                    ws.Cell(row, 8).Value = item.ClienteUnidad;
+                    ws.Cell(row, 9).Value = item.CiudadDestino;
+                    ws.Cell(row, 10).Value = item.SectorDestino;
+                    ws.Cell(row, 11).Value = item.Destinatario;
+                    ws.Cell(row, 12).Value = item.Contenido;
+
+                    ws.Cell(row, 13).Value = item.PKg;
+                    ws.Cell(row, 14).Value = item.PVol;
+                    ws.Cell(row, 15).Value = item.Valor;
+                    ws.Cell(row, 16).Value = item.Seg;
+                    ws.Cell(row, 17).Value = item.IVA;
+                    ws.Cell(row, 18).Value = item.Total;
+
+                    row++;
+                }
+
+                ws.Columns().AdjustToContents();
+                wb.SaveAs(outputXlsx);
+                wb.Dispose();
+
+                MessageBox.Show($"Página {pagina.NumeroPagina} procesada y guardada en {outputXlsx}.");
+            }
+
+            MessageBox.Show("Proceso por páginas finalizado. Revisar archivo: " + outputXlsx);
+        }
+
+        private void label5_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void separarPdfToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string inputPdf = @"C:\ruta\Certificados ISO 37001 Asistencia1-2.pdf";
+            string outputFolder = @"C:\pdfs";
+
+            string? archivo = openFileDialog1.ObtenerArchivoSeleccionado();
+
+            if (string.IsNullOrEmpty(archivo))
+            {
+                return;
+            }
+
+            DialogResult resultado = MessageBox.Show(" ¿Desea procesar el archivo PDF página por página: \n " + archivo + " ?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if (!(resultado == DialogResult.Yes))
+            {
+                return;
+            }
+
+            inputPdf = archivo;
+
+            Directory.CreateDirectory(outputFolder);
+
+            using (var document = UglyToad.PdfPig.PdfDocument.Open(inputPdf))
+            using (var pdfSharpDoc = PdfReader.Open(inputPdf, PdfDocumentOpenMode.Import))
+            {
+                for (int i = 1; i <= document.NumberOfPages; i++)
+                {
+                    var page = document.GetPage(i);
+                    string text = page.Text;
+
+                    string nombre = ObtenerNombre(text, i - 1);
+
+                    // Limpiar nombre para archivo
+                    nombre = LimpiarNombreArchivo(nombre);
+
+                    string outputPath = Path.Combine(outputFolder, $"{nombre}.pdf");
+
+                    // Crear nuevo PDF con una sola página
+                    var outputPdf = new PdfSharp.Pdf.PdfDocument();
+                    outputPdf.AddPage(pdfSharpDoc.Pages[i - 1]);
+                    outputPdf.Save(outputPath);
+
+                    Console.WriteLine($"Creado: {outputPath}");
+                }
+            }
+        }
+
+        static string ObtenerNombre(string texto, int numeroPagina)
+        {
+            if (string.IsNullOrWhiteSpace(texto))
+                return $"archivo_{numeroPagina}";
+
+            // Primero: intentar extraer nombre entre 'CAVILARD' y 'Asistió'
+            // El patrón tolera que no haya espacios entre las partes (como en el ejemplo).
+            var match = Regex.Match(texto, @"CAVILAR(?<name>[\p{L}\s\.\-]{3,200}?)Asistió", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            if (match.Success)
+            {
+                var name = match.Groups["name"].Value.Trim();
+                if (!string.IsNullOrEmpty(name))
+                    return name;
+            }
+
+            // Segundo: comportamiento previo — buscar línea en MAYÚSCULAS con >= 3 palabras,
+            // pero usando ToUpperInvariant para soporte de Unicode
+            var lineas = texto.Split('\n');
+            foreach (var linea in lineas)
+            {
+                var limpia = linea.Trim();
+                if (string.IsNullOrEmpty(limpia))
+                    continue;
+
+                if (limpia == limpia.ToUpperInvariant() &&
+                    limpia.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length >= 3 &&
+                    !limpia.Contains("ISO", StringComparison.OrdinalIgnoreCase) &&
+                    !limpia.Contains("ING.", StringComparison.OrdinalIgnoreCase) &&
+                    !limpia.Contains("MSC", StringComparison.OrdinalIgnoreCase))
+                {
+                    return limpia;
+                }
+            }
+
+            return $"archivo_{numeroPagina}";
+        }
+
+        static string ObtenerNombre2(string texto, int numeroPagina)
+        {
+            if (string.IsNullOrWhiteSpace(texto))
+                return $"archivo_{numeroPagina}";
+
+            // Primero: intentar extraer nombre entre 'CAVILARD' y 'Asistió'
+            // El patrón tolera que no haya espacios entre las partes (como en el ejemplo).
+            var match = Regex.Match(texto, @"CAVILAR(?<name>[\p{L}\s\.\-]{3,200}?)Aprobó", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            if (match.Success)
+            {
+                var name = match.Groups["name"].Value.Trim();
+                if (!string.IsNullOrEmpty(name))
+                    return name;
+            }
+
+            // Segundo: comportamiento previo — buscar línea en MAYÚSCULAS con >= 3 palabras,
+            // pero usando ToUpperInvariant para soporte de Unicode
+            var lineas = texto.Split('\n');
+            foreach (var linea in lineas)
+            {
+                var limpia = linea.Trim();
+                if (string.IsNullOrEmpty(limpia))
+                    continue;
+
+                if (limpia == limpia.ToUpperInvariant() &&
+                    limpia.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length >= 3 &&
+                    !limpia.Contains("ISO", StringComparison.OrdinalIgnoreCase) &&
+                    !limpia.Contains("ING.", StringComparison.OrdinalIgnoreCase) &&
+                    !limpia.Contains("MSC", StringComparison.OrdinalIgnoreCase))
+                {
+                    return limpia;
+                }
+            }
+
+            return $"archivo_{numeroPagina}";
+        }
+
+        static string LimpiarNombreArchivo(string nombre)
+        {
+            if (string.IsNullOrWhiteSpace(nombre))
+                return "archivo";
+
+            // Permitir letras Unicode (\p{L}) y dígitos (\p{N}) y espacios;
+            // eliminar caracteres no válidos para nombre de archivo.
+            string limpio = Regex.Replace(nombre, @"[^\p{L}\p{N} ]+", string.Empty);
+
+            // Normalizar espacios y recortar
+            limpio = Regex.Replace(limpio.Trim(), @"\s+", "_");
+
+            // Limitar longitud razonable para evitar problemas con el sistema de ficheros
+            if (limpio.Length > 120)
+                limpio = limpio.Substring(0, 120);
+
+            return string.IsNullOrEmpty(limpio) ? "archivo" : limpio;
+        }
+
+        private void separarPdf2ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string inputPdf = @"C:\ruta\Certificados ISO 37001 Asistencia1-2.pdf";
+            string outputFolder = @"C:\pdfs";
+
+            string? archivo = openFileDialog1.ObtenerArchivoSeleccionado();
+
+            if (string.IsNullOrEmpty(archivo))
+            {
+                return;
+            }
+
+            DialogResult resultado = MessageBox.Show(" ¿Desea procesar el archivo PDF página por página: \n " + archivo + " ?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if (!(resultado == DialogResult.Yes))
+            {
+                return;
+            }
+
+            inputPdf = archivo;
+
+            Directory.CreateDirectory(outputFolder);
+
+            using (var document = UglyToad.PdfPig.PdfDocument.Open(inputPdf))
+            using (var pdfSharpDoc = PdfReader.Open(inputPdf, PdfDocumentOpenMode.Import))
+            {
+                for (int i = 1; i <= document.NumberOfPages; i++)
+                {
+                    var page = document.GetPage(i);
+                    string text = page.Text;
+
+                    string nombre = ObtenerNombre2(text, i - 1);
+
+                    // Limpiar nombre para archivo
+                    nombre = LimpiarNombreArchivo(nombre);
+
+                    string outputPath = Path.Combine(outputFolder, $"{nombre}.pdf");
+
+                    // Crear nuevo PDF con una sola página
+                    var outputPdf = new PdfSharp.Pdf.PdfDocument();
+                    outputPdf.AddPage(pdfSharpDoc.Pages[i - 1]);
+                    outputPdf.Save(outputPath);
+
+                    Console.WriteLine($"Creado: {outputPath}");
+                }
+            }
+        }
+
+        private void pictureBox1_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label7_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            openFileDialog1.Title = "Seleccione la plantilla del certificado";
+            openFileDialog1.Filter = "Presentaciones PowerPoint (*.pptx;*.pptm)|*.pptx;*.pptm";
+
+            if (!(openFileDialog1.ShowDialog() == DialogResult.OK))
+            {
+                return;
+            }
+
+            rutaPlantillaCertificado = openFileDialog1.FileName;
+            label7.Text = rutaPlantillaCertificado;
+        }
+
+        private string ConstruirRutaCertificado(string participante)
+        {
+            if (P1.Program.direccion == 0)
+            {
+                return P1.Program.direccionSitioWebP + "/" + P1.Program.nombreCurso + "/" + participante + ".pdf";
+            }
+
+            if (P1.Program.direccion == 1)
+            {
+                return P1.Program.direccionSitioWebR1 + "/" + P1.Program.nombreCurso + "/" + participante + ".pdf";
+            }
+
+            throw new InvalidOperationException("Seleccione una dirección válida.");
+        }
+
+        private void label1_Click(object sender, EventArgs e)
+        {
+
+        }
+    }
+}
